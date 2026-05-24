@@ -86,11 +86,11 @@ public:
     void SetShouldClose(bool v)                            { glfwSetWindowShouldClose(handle_, v ? GLFW_TRUE : GLFW_FALSE); }
     void SetInputMode(int mode, int value)                 { glfwSetInputMode(handle_, mode, value); }
 
-    FramebufferSizeCallback on_framebuffer_size_;
-    KeyCallback             on_key_;
-    MouseButtonCallback     on_mouse_button_;
-    CursorPosCallback       on_cursor_pos_;
-    ScrollCallback          on_scroll_;
+    FramebufferSizeCallback on_framebuffer_size;
+    KeyCallback             on_key;
+    MouseButtonCallback     on_mouse_button;
+    CursorPosCallback       on_cursor_pos;
+    ScrollCallback          on_scroll;
 
 private:
     static Window *Self(GLFWwindow *w) { return static_cast<Window *>(glfwGetWindowUserPointer(w)); }

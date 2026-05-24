@@ -71,11 +71,11 @@ Window::~Window() {
 
 Window::Window(Window &&other) noexcept
     : handle_(std::exchange(other.handle_, nullptr)),
-      on_framebuffer_size_(std::move(other.on_framebuffer_size_)),
-      on_key_(std::move(other.on_key_)),
-      on_mouse_button_(std::move(other.on_mouse_button_)),
-      on_cursor_pos_(std::move(other.on_cursor_pos_)),
-      on_scroll_(std::move(other.on_scroll_)) {
+      on_framebuffer_size(std::move(other.on_framebuffer_size)),
+      on_key(std::move(other.on_key)),
+      on_mouse_button(std::move(other.on_mouse_button)),
+      on_cursor_pos(std::move(other.on_cursor_pos)),
+      on_scroll(std::move(other.on_scroll)) {
     if (handle_)
         glfwSetWindowUserPointer(handle_, this);
 }
@@ -84,12 +84,12 @@ Window &Window::operator=(Window &&other) noexcept {
     if (this != &other) {
         if (handle_)
             glfwDestroyWindow(handle_);
-        handle_              = std::exchange(other.handle_, nullptr);
-        on_framebuffer_size_ = std::move(other.on_framebuffer_size_);
-        on_key_              = std::move(other.on_key_);
-        on_mouse_button_     = std::move(other.on_mouse_button_);
-        on_cursor_pos_       = std::move(other.on_cursor_pos_);
-        on_scroll_           = std::move(other.on_scroll_);
+        handle_             = std::exchange(other.handle_, nullptr);
+        on_framebuffer_size = std::move(other.on_framebuffer_size);
+        on_key              = std::move(other.on_key);
+        on_mouse_button     = std::move(other.on_mouse_button);
+        on_cursor_pos       = std::move(other.on_cursor_pos);
+        on_scroll           = std::move(other.on_scroll);
         if (handle_)
             glfwSetWindowUserPointer(handle_, this);
     }
@@ -98,32 +98,32 @@ Window &Window::operator=(Window &&other) noexcept {
 
 void Window::ForwardFramebufferSize(GLFWwindow *w, int width, int height) {
     auto *s = Self(w);
-    if (s && s->on_framebuffer_size_)
-        s->on_framebuffer_size_(width, height);
+    if (s && s->on_framebuffer_size)
+        s->on_framebuffer_size(width, height);
 }
 
 void Window::ForwardKey(GLFWwindow *w, int key, int scancode, int action, int mods) {
     auto *s = Self(w);
-    if (s && s->on_key_)
-        s->on_key_(key, scancode, action, mods);
+    if (s && s->on_key)
+        s->on_key(key, scancode, action, mods);
 }
 
 void Window::ForwardCursorPos(GLFWwindow *w, double x, double y) {
     auto *s = Self(w);
-    if (s && s->on_cursor_pos_)
-        s->on_cursor_pos_(x, y);
+    if (s && s->on_cursor_pos)
+        s->on_cursor_pos(x, y);
 }
 
 void Window::ForwardMouseButton(GLFWwindow *w, int button, int action, int mods) {
     auto *s = Self(w);
-    if (s && s->on_mouse_button_)
-        s->on_mouse_button_(button, action, mods);
+    if (s && s->on_mouse_button)
+        s->on_mouse_button(button, action, mods);
 }
 
 void Window::ForwardScroll(GLFWwindow *w, double x, double y) {
     auto *s = Self(w);
-    if (s && s->on_scroll_)
-        s->on_scroll_(x, y);
+    if (s && s->on_scroll)
+        s->on_scroll(x, y);
 }
 
 } // namespace glfw
