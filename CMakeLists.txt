@@ -1,0 +1,100 @@
+cmake_minimum_required(VERSION 3.22)
+project(learn-graphics-api VERSION 1.0 LANGUAGES CXX C)
+
+set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_WARN_DEPRECATED OFF)
+set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>DLL")
+
+if(MSVC)
+    add_compile_options(/utf-8)
+    add_compile_definitions(UNICODE _UNICODE NOMINMAX)
+endif()
+
+include(FetchContent)
+
+# =============================================================================
+# GLFW (cross-platform windowing and input library)
+# =============================================================================
+FetchContent_Declare(
+    glfw
+    GIT_REPOSITORY https://github.com/glfw/glfw.git
+    GIT_TAG        3.4
+    GIT_SHALLOW    TRUE
+)
+set(GLFW_BUILD_DOCS     OFF CACHE BOOL "" FORCE)
+set(GLFW_BUILD_TESTS    OFF CACHE BOOL "" FORCE)
+set(GLFW_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
+FetchContent_MakeAvailable(glfw)
+
+# =============================================================================
+# OpenGL
+# =============================================================================
+find_package(OpenGL REQUIRED)
+
+# =============================================================================
+# glad (OpenGL 4.6 loader, generated at configure time)
+# =============================================================================
+find_package(Python3 REQUIRED COMPONENTS Interpreter)
+
+set(GLAD_OUT_DIR "${CMAKE_BINARY_DIR}/_generated/glad")
+set(GLAD_SRC     "${GLAD_OUT_DIR}/src/glad.c")
+set(GLAD_INC     "${GLAD_OUT_DIR}/include")
+
+if(NOT EXISTS "${GLAD_SRC}")
+    execute_process(
+        COMMAND ${Python3_EXECUTABLE} -m pip install glad --quiet --disable-pip-version-check
+        WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+        RESULT_VARIABLE PIP_RESULT
+    )
+    if(NOT PIP_RESULT EQUAL 0)
+        message(FATAL_ERROR "Failed to install glad. Try: pip install glad")
+    endif()
+    execute_process(
+        COMMAND ${Python3_EXECUTABLE} -m glad
+            --api       gl=4.6
+            --profile   core
+            --generator c
+            --out-path  ${GLAD_OUT_DIR}
+            --reproducible
+        RESULT_VARIABLE GLAD_RESULT
+    )
+    if(NOT GLAD_RESULT EQUAL 0)
+        message(FATAL_ERROR "Failed to generate GLAD loader")
+    endif()
+    message(STATUS "GLAD loader generated for OpenGL 4.6 core")
+endif()
+
+add_library(glad STATIC ${GLAD_SRC})
+target_include_directories(glad PUBLIC ${GLAD_INC})
+if(MSVC)
+    target_compile_options(glad PRIVATE "/MD$<$<CONFIG:Debug>:d>" "/utf-8")
+endif()
+target_link_libraries(glad PUBLIC OpenGL::GL)
+
+# =============================================================================
+# glm (header-only math library)
+# =============================================================================
+FetchContent_Declare(
+    glm
+    GIT_REPOSITORY https://github.com/g-truc/glm.git
+    GIT_TAG        1.0.3
+    GIT_SHALLOW    TRUE
+)
+FetchContent_MakeAvailable(glm)
+
+# =============================================================================
+# Hello Triangle executable
+# =============================================================================
+add_executable(hello-triangle
+    src/hello_triangle.cpp
+    src/glfw_window.cpp
+)
+target_link_libraries(hello-triangle PRIVATE
+    glfw
+    glad
+    OpenGL::GL
+    d3d11
+    dxgi
+    d3dcompiler
+)
