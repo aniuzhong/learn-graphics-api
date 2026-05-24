@@ -1,0 +1,5 @@
+# VSCode clangd extension
+.cache/
+
+# Default CMake build directory
+build/
