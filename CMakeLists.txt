@@ -7,14 +7,14 @@ set(CMAKE_WARN_DEPRECATED OFF)
 set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>DLL")
 
 if(MSVC)
-    add_compile_options(/utf-8)
+    add_compile_options(/utf-8 /W3 /wd4005)
     add_compile_definitions(UNICODE _UNICODE NOMINMAX)
 endif()
 
 include(FetchContent)
 
 # =============================================================================
-# GLFW (cross-platform windowing and input library)
+# GLFW
 # =============================================================================
 FetchContent_Declare(
     glfw
@@ -84,17 +84,52 @@ FetchContent_Declare(
 FetchContent_MakeAvailable(glm)
 
 # =============================================================================
-# Hello Triangle executable
+# stb_image — single-header image loader
 # =============================================================================
-add_executable(hello-triangle
-    src/hello_triangle.cpp
-    src/glfw_window.cpp
-)
-target_link_libraries(hello-triangle PRIVATE
-    glfw
-    glad
-    OpenGL::GL
-    d3d11
-    dxgi
-    d3dcompiler
-)
+set(STB_DIR    "${CMAKE_BINARY_DIR}/_generated/stb")
+set(STB_HEADER "${STB_DIR}/stb_image.h")
+if(NOT EXISTS "${STB_HEADER}")
+    file(MAKE_DIRECTORY "${STB_DIR}")
+    file(DOWNLOAD
+        "https://raw.githubusercontent.com/nothings/stb/master/stb_image.h"
+        "${STB_HEADER}"
+        SHOW_PROGRESS
+    )
+    message(STATUS "stb_image.h downloaded")
+endif()
+
+add_library(stb_image STATIC src/stb_image.cpp)
+target_include_directories(stb_image PUBLIC "${STB_DIR}")
+
+# =============================================================================
+# Common renderer libraries  (linked by every example)
+# =============================================================================
+set(RENDERER_LIBS glfw glad OpenGL::GL d3d11 dxgi d3dcompiler)
+set(RENDERER_SRCS src/glfw_window.cpp src/renderer.cpp)
+
+# =============================================================================
+# Hello Triangle
+# =============================================================================
+add_executable(hello-triangle src/Example_Hello_Triangle.cpp ${RENDERER_SRCS})
+target_link_libraries(hello-triangle PRIVATE ${RENDERER_LIBS})
+
+# =============================================================================
+# Textures
+# =============================================================================
+add_executable(textures src/Example_Textures.cpp ${RENDERER_SRCS})
+target_link_libraries(textures PRIVATE ${RENDERER_LIBS} stb_image)
+target_include_directories(textures PRIVATE "${STB_DIR}")
+
+# =============================================================================
+# Camera
+# =============================================================================
+add_executable(camera src/Example_Camera.cpp ${RENDERER_SRCS})
+target_link_libraries(camera PRIVATE ${RENDERER_LIBS} stb_image glm)
+target_include_directories(camera PRIVATE "${STB_DIR}")
+
+# =============================================================================
+# Framebuffer
+# =============================================================================
+add_executable(framebuffer src/Example_Framebuffer.cpp ${RENDERER_SRCS})
+target_link_libraries(framebuffer PRIVATE ${RENDERER_LIBS} stb_image glm)
+target_include_directories(framebuffer PRIVATE "${STB_DIR}")
