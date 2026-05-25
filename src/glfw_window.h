@@ -2,6 +2,10 @@
 
 #include <functional>
 
+#ifdef _WIN32
+#include <Windows.h>  // must precede GLFW — defines APIENTRY before glfw3.h
+#endif
+
 #define GLFW_INCLUDE_NONE
 #include <GLFW/glfw3.h>
 
