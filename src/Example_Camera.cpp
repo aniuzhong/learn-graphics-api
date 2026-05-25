@@ -345,11 +345,11 @@ int main(int argc, char* argv[]) {
     // No index buffer — 36 unique vertices per cube, non-indexed draw.
 
     // ---- input layout (pos:3 + uv:2) -----------------------------------
-    constexpr uint32_t kStride = 5 * sizeof(float);
     constexpr gfx::VertexAttrib kAttribs[] = {
         {0, "POSITION", gfx::AttribFormat::kFloat3, 0},
         {1, "TEXCOORD", gfx::AttribFormat::kFloat2, 3 * sizeof(float)},
     };
+    constexpr uint32_t kStride = gfx::ComputeStride(kAttribs, 2);
     gfx::Handle layout = renderer->CreateInputLayout(
         program, kStride, kAttribs, 2);
     if (layout == gfx::kInvalidHandle) { std::cerr << "Layout failed" << std::endl; return -1; }

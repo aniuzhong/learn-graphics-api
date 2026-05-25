@@ -62,21 +62,9 @@ constexpr const char* kD3D11Fs = R"(float4 main() : SV_TARGET
     return float4(1.0, 0.5, 0.2, 1.0);
 })";
 
-// =============================================================================
-int main(int argc, char* argv[]) {
-    gfx::Backend backend = gfx::Backend::kOpenGL;
-    // gfx::Backend backend = gfx::Backend::kD3D11;
-
-    glfwInit();
-
-    // create window (hints differ per backend)
-    const char* vs_source = nullptr;
-    const char* fs_source = nullptr;
-    const char* title     = nullptr;
-
-    std::unique_ptr<glfw::Window> window;
+std::unique_ptr<glfw::Window> _CreateWindow(gfx::Backend backend, const char* title, int width, int height) {
+    glfw::Window::Hints hints{};
     if (backend == gfx::Backend::kOpenGL) {
-        glfw::Window::Hints hints{};
         hints.client_api            = GLFW_OPENGL_API;
         hints.context_version_major = 4;
         hints.context_version_minor = 6;
@@ -84,13 +72,27 @@ int main(int argc, char* argv[]) {
 #ifdef __APPLE__
         hints.context_forward_compat = true;
 #endif
-        window    = std::make_unique<glfw::Window>(800, 600, "learn-graphics-api — OpenGL 4.6 (Esc to quit)", hints);
+    } else {
+        hints.client_api = GLFW_NO_API;
+    }
+    return std::make_unique<glfw::Window>(width, height, title, hints);
+}
+
+int main(int argc, char* argv[])
+{
+    gfx::Backend backend = gfx::Backend::kOpenGL;
+    // gfx::Backend backend = gfx::Backend::kD3D11;
+
+    glfwInit();
+
+    auto window = _CreateWindow(backend, "learn-graphics-api — Hello Triangle", 800, 600);
+
+    const char* vs_source = nullptr;
+    const char* fs_source = nullptr;
+    if (backend == gfx::Backend::kOpenGL) {
         vs_source = kGlVs;
         fs_source = kGlFs;
     } else {
-        glfw::Window::Hints hints{};
-        hints.client_api = GLFW_NO_API;
-        window    = std::make_unique<glfw::Window>(800, 600, "learn-graphics-api — D3D11 (Esc to quit)", hints);
         vs_source = kD3D11Vs;
         fs_source = kD3D11Fs;
     }
@@ -158,8 +160,8 @@ int main(int argc, char* argv[]) {
     }
 
     // create input layout
-    constexpr uint32_t kStride = 3 * sizeof(float); // position only
     constexpr gfx::VertexAttrib kAttribs[] = { {0, "POSITION", gfx::AttribFormat::kFloat3, 0}, };
+    constexpr uint32_t kStride = gfx::ComputeStride(kAttribs, 1);
     gfx::Handle layout = renderer->CreateInputLayout(program, kStride, kAttribs, 1);
     if (layout == gfx::kInvalidHandle) {
         std::cerr << "Input layout creation failed" << std::endl;

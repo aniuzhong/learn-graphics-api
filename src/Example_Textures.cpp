@@ -193,12 +193,12 @@ int main(int argc, char* argv[]) {
     }
 
     // ---- create input layout  (3 attribs: pos + color + texcoord) -------
-    constexpr uint32_t kStride = 8 * sizeof(float);
     constexpr gfx::VertexAttrib kAttribs[] = {
         {0, "POSITION", gfx::AttribFormat::kFloat3,  0},
         {1, "COLOR",    gfx::AttribFormat::kFloat3,  3 * sizeof(float)},
         {2, "TEXCOORD", gfx::AttribFormat::kFloat2,  6 * sizeof(float)},
     };
+    constexpr uint32_t kStride = gfx::ComputeStride(kAttribs, 3);
 
     gfx::Handle layout = renderer->CreateInputLayout(program, kStride, kAttribs, 3);
     if (layout == gfx::kInvalidHandle) {

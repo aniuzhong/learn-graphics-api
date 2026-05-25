@@ -222,16 +222,16 @@ int main(int argc, char* argv[]) {
     int32_t locProj=renderer->GetUniformLocation(sceneProg,"projection");
 
     // ---- buffers & layouts ------------------------------------------------
-    constexpr uint32_t kStride5 = 5*sizeof(float);
     constexpr gfx::VertexAttrib kAttr5[] = {
         {0,"POSITION",gfx::AttribFormat::kFloat3,0},
         {1,"TEXCOORD",gfx::AttribFormat::kFloat2,3*sizeof(float)},
     };
-    constexpr uint32_t kStride4 = 4*sizeof(float);
+    constexpr uint32_t kStride5 = gfx::ComputeStride(kAttr5, 2);
     constexpr gfx::VertexAttrib kAttr4[] = {
         {0,"POSITION",gfx::AttribFormat::kFloat2,0},
         {1,"TEXCOORD",gfx::AttribFormat::kFloat2,2*sizeof(float)},
     };
+    constexpr uint32_t kStride4 = gfx::ComputeStride(kAttr4, 2);
 
     gfx::Handle cubeVB  = renderer->CreateBuffer(gfx::BufferType::kVertex,gfx::Usage::kStatic,sizeof(kCubeVerts),kCubeVerts);
     gfx::Handle planeVB = renderer->CreateBuffer(gfx::BufferType::kVertex,gfx::Usage::kStatic,sizeof(kPlaneVerts),kPlaneVerts);

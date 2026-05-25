@@ -77,14 +77,34 @@ enum class AttribFormat {
     kUbyte4Norm,   // RGBA8 normalized unsigned byte  (color, bone weights)
 };
 
-inline uint32_t AttribSize(AttribFormat f) {
-    constexpr uint32_t kSizes[] = {4, 8, 12, 16, 4, 8, 12, 16, 4};
-    return kSizes[static_cast<uint8_t>(f)];
+inline constexpr uint32_t AttribSize(AttribFormat f) {
+    switch (f) {
+    case AttribFormat::kFloat:      return 4;
+    case AttribFormat::kFloat2:     return 8;
+    case AttribFormat::kFloat3:     return 12;
+    case AttribFormat::kFloat4:     return 16;
+    case AttribFormat::kInt:        return 4;
+    case AttribFormat::kInt2:       return 8;
+    case AttribFormat::kInt3:       return 12;
+    case AttribFormat::kInt4:       return 16;
+    case AttribFormat::kUbyte4Norm: return 4;
+    }
+    return 0;
 }
 
-inline uint32_t AttribComponents(AttribFormat f) {
-    constexpr uint32_t kComps[] = {1, 2, 3, 4, 1, 2, 3, 4, 4};
-    return kComps[static_cast<uint8_t>(f)];
+inline constexpr uint32_t AttribComponents(AttribFormat f) {
+    switch (f) {
+    case AttribFormat::kFloat:      return 1;
+    case AttribFormat::kFloat2:     return 2;
+    case AttribFormat::kFloat3:     return 3;
+    case AttribFormat::kFloat4:     return 4;
+    case AttribFormat::kInt:        return 1;
+    case AttribFormat::kInt2:       return 2;
+    case AttribFormat::kInt3:       return 3;
+    case AttribFormat::kInt4:       return 4;
+    case AttribFormat::kUbyte4Norm: return 4;
+    }
+    return 0;
 }
 
 struct VertexAttrib {
@@ -93,6 +113,15 @@ struct VertexAttrib {
     AttribFormat format;
     uint32_t     offset;     // byte offset within the vertex
 };
+
+inline constexpr uint32_t ComputeStride(const VertexAttrib* attribs, uint32_t count) {
+    uint32_t stride = 0;
+    for (uint32_t i = 0; i < count; ++i) {
+        uint32_t end = attribs[i].offset + AttribSize(attribs[i].format);
+        if (end > stride) stride = end;
+    }
+    return stride;
+}
 
 // ===========================================================================
 // Texture
