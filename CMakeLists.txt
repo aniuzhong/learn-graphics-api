@@ -133,3 +133,10 @@ target_include_directories(camera PRIVATE "${STB_DIR}")
 add_executable(framebuffer src/Example_Framebuffer.cpp ${RENDERER_SRCS})
 target_link_libraries(framebuffer PRIVATE ${RENDERER_LIBS} stb_image glm)
 target_include_directories(framebuffer PRIVATE "${STB_DIR}")
+
+# =============================================================================
+# Hello Triangle (D3D12)
+# =============================================================================
+add_executable(hello-triangle-d3d12 src/Example_Hello_Triangle_D3D12.cpp ${RENDERER_SRCS})
+target_link_libraries(hello-triangle-d3d12 PRIVATE glfw glad d3d12 d3dcompiler dxgi d3d11 OpenGL::GL)
+target_include_directories(hello-triangle-d3d12 PRIVATE "${STB_DIR}")
