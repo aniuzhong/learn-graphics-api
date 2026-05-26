@@ -105,7 +105,12 @@ target_include_directories(stb_image PUBLIC "${STB_DIR}")
 # Common renderer libraries  (linked by every example)
 # =============================================================================
 set(RENDERER_LIBS glfw glad OpenGL::GL d3d11 dxgi d3dcompiler)
-set(RENDERER_SRCS src/glfw_window.cpp src/renderer.cpp)
+set(RENDERER_SRCS
+    src/glfw_window.cpp
+    src/renderer.cpp
+    src/renderer_gl.cpp
+    src/renderer_d3d11.cpp
+)
 
 # =============================================================================
 # Hello Triangle
