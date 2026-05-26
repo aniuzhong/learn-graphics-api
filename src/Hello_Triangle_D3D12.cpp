@@ -279,6 +279,103 @@ void CreatePipelineState() {
     std::cout << "Pipeline State Object created successfully." << std::endl;
 }
 
+void Render() {
+    HRESULT hr;
+    hr = g_command_allocator->Reset();
+    if (FAILED(hr)) {
+        std::cerr << "Failed to reset Command Allocator: " << std::hex << hr << std::endl;
+        return;
+    }
+    hr = g_command_list->Reset(g_command_allocator.Get(), g_pipeline_state.Get());
+    if (FAILED(hr)) {
+        std::cerr << "Failed to reset Command List: " << std::hex << hr << std::endl;
+        return;
+    }
+
+    UINT back_buffer_index = g_swap_chain->GetCurrentBackBufferIndex();
+
+    D3D12_RESOURCE_BARRIER barrier = {};
+    barrier.Type                   = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+    barrier.Flags                  = D3D12_RESOURCE_BARRIER_FLAG_NONE;
+    barrier.Transition.pResource   = g_render_targets[back_buffer_index].Get();
+    barrier.Transition.StateBefore = D3D12_RESOURCE_STATE_PRESENT;
+    barrier.Transition.StateAfter  = D3D12_RESOURCE_STATE_RENDER_TARGET;
+    barrier.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
+
+    g_command_list->ResourceBarrier(1, &barrier);
+    // std::cout << "Command List reset and Barrier recorded for buffer " << back_buffer_index << "." << std::endl;
+
+    D3D12_CPU_DESCRIPTOR_HANDLE rtv_handle = g_rtv_heap->GetCPUDescriptorHandleForHeapStart();
+    UINT rtv_descriptor_size = g_device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
+    rtv_handle.ptr += back_buffer_index * rtv_descriptor_size;
+
+    D3D12_VIEWPORT viewport = {};
+    viewport.TopLeftX = 0;
+    viewport.TopLeftY = 0;
+    viewport.Width = static_cast<float>(kWidth);
+    viewport.Height = static_cast<float>(kHeight);
+    viewport.MinDepth = 0.0f;
+    viewport.MaxDepth = 1.0f;
+
+    D3D12_RECT scissor_rect = {};
+    scissor_rect.left = 0;
+    scissor_rect.top = 0;
+    scissor_rect.right = kWidth;
+    scissor_rect.bottom = kHeight;
+
+    const FLOAT clear_color[] = { 0.2f, 0.3f, 0.3f, 1.0f };
+    g_command_list->ClearRenderTargetView(rtv_handle, clear_color, 0, nullptr);
+    g_command_list->RSSetViewports(1, &viewport);
+    g_command_list->RSSetScissorRects(1, &scissor_rect);
+    g_command_list->OMSetRenderTargets(1, &rtv_handle, FALSE, nullptr);
+    g_command_list->SetGraphicsRootSignature(g_root_signature.Get());
+    g_command_list->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+    g_command_list->DrawInstanced(3, 1, 0, 0);
+
+    D3D12_RESOURCE_BARRIER present_barrier = {};
+    present_barrier.Type                   = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+    present_barrier.Flags                  = D3D12_RESOURCE_BARRIER_FLAG_NONE;
+    present_barrier.Transition.pResource   = g_render_targets[back_buffer_index].Get();
+    present_barrier.Transition.StateBefore = D3D12_RESOURCE_STATE_RENDER_TARGET;
+    present_barrier.Transition.StateAfter  = D3D12_RESOURCE_STATE_PRESENT;
+    present_barrier.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
+
+    g_command_list->ResourceBarrier(1, &present_barrier);
+    hr = g_command_list->Close();
+    if (FAILED(hr)) {
+        std::cerr << "Failed to close Command List: " << std::hex << hr << std::endl;
+        return;
+    }
+    // std::cout << "DrawCall and Present Barrier recorded successfully. Command List Closed." << std::endl;
+
+    ID3D12CommandList* command_lists[] = { g_command_list.Get() };
+    g_command_queue->ExecuteCommandLists(_countof(command_lists), command_lists);
+
+    hr = g_swap_chain->Present(1, 0);
+    if (FAILED(hr)) {
+        std::cerr << "Failed to present Swap Chain: " << std::hex << hr << std::endl;
+        return;
+    }
+
+    g_fence_value++;
+
+    const UINT64 current_fence_value = g_fence_value;
+    hr = g_command_queue->Signal(g_fence.Get(), current_fence_value);
+    if (FAILED(hr)) {
+        std::cerr << "Failed to signal Command Queue: " << std::hex << hr << std::endl;
+        return;
+    }
+
+    if (g_fence->GetCompletedValue() < current_fence_value) {
+        hr = g_fence->SetEventOnCompletion(current_fence_value, g_fence_event);
+        if (FAILED(hr)) {
+            std::cerr << "Failed to set event on Fence completion: " << std::hex << hr << std::endl;
+            return;
+        }
+        WaitForSingleObject(g_fence_event, INFINITE);
+    }
+}
+
 int main()
 {
     glfwInit();
@@ -300,6 +397,7 @@ int main()
 
     while (!window.ShouldClose()) {
         glfwPollEvents();
+        Render();
     }
 
     glfwTerminate();
