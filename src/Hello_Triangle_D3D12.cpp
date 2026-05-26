@@ -28,6 +28,10 @@ ComPtr<ID3D12GraphicsCommandList>       g_command_list;
 ComPtr<ID3D12Fence>                     g_fence;
 UINT64                                  g_fence_value                   = 0;
 HANDLE                                  g_fence_event                   = nullptr;
+ComPtr<ID3D12RootSignature>             g_root_signature;
+ComPtr<ID3DBlob>                        g_vertex_shader_blob;
+ComPtr<ID3DBlob>                        g_pixel_shader_blob;
+ComPtr<ID3D12PipelineState>             g_pipeline_state;
 
 void InitializeD3D12() {
     HRESULT hr;
@@ -167,6 +171,114 @@ void InitializeD3D12() {
     std::cout << "Fence event created successfully." << std::endl;
 }
 
+void CreatePipelineState() {
+    HRESULT hr;
+    D3D12_ROOT_SIGNATURE_DESC root_signature_desc = {};
+    root_signature_desc.NumParameters             = 0;
+    root_signature_desc.pParameters               = nullptr;
+    root_signature_desc.NumStaticSamplers         = 0;
+    root_signature_desc.pStaticSamplers           = nullptr;
+    root_signature_desc.Flags                     = D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT;
+
+    ComPtr<ID3DBlob> signature_blob;
+    ComPtr<ID3DBlob> error_blob;
+    hr = D3D12SerializeRootSignature(&root_signature_desc,
+                                     D3D_ROOT_SIGNATURE_VERSION_1,
+                                     &signature_blob,
+                                     &error_blob);
+    if (FAILED(hr)) {
+        std::cerr << "Failed to serialize Root Signature: " << std::hex << hr << std::endl;
+        if (error_blob) {
+            std::cerr << "Error details: " << static_cast<const char*>(error_blob->GetBufferPointer()) << std::endl;
+        }
+        return;
+    }
+
+    hr = g_device->CreateRootSignature(0,
+                                       signature_blob->GetBufferPointer(),
+                                       signature_blob->GetBufferSize(),
+                                       IID_PPV_ARGS(&g_root_signature));
+    if (FAILED(hr)) {
+        std::cerr << "Failed to create Root Signature: " << std::hex << hr << std::endl;
+        return;
+    }
+
+    std::cout << "Empty Root Signature created successfully." << std::endl;
+
+    UINT compile_flags = 0;
+#if defined(_DEBUG)
+    compile_flags |= D3DCOMPILE_DEBUG | D3DCOMPILE_SKIP_OPTIMIZATION;
+#endif
+    hr = D3DCompileFromFile(
+        L"shaders.hlsl",
+        nullptr,
+        nullptr,
+        "VSMain",
+        "vs_5_0",
+        compile_flags,
+        0,
+        &g_vertex_shader_blob,
+        &error_blob);
+
+    if (FAILED(hr)) {
+        std::cerr << "Failed to compile vertex shader: " << std::hex << hr << std::endl;
+        if (error_blob) {
+            std::cerr << "Error details: " << static_cast<const char*>(error_blob->GetBufferPointer()) << std::endl;
+        }
+        return;
+    }
+    std::cout << "Vertex shader compiled successfully." << std::endl;
+
+    hr = D3DCompileFromFile(
+        L"shaders.hlsl",
+        nullptr,
+        nullptr,
+        "PSMain",
+        "ps_5_0",
+        compile_flags,
+        0,
+        &g_pixel_shader_blob,
+        &error_blob);
+
+    if (FAILED(hr)) {
+        std::cerr << "Failed to compile pixel shader: " << std::hex << hr << std::endl;
+        if (error_blob) {
+            std::cerr << "Error details: " << static_cast<const char*>(error_blob->GetBufferPointer()) << std::endl;
+        }
+        return;
+    }
+    std::cout << "Pixel shader compiled successfully." << std::endl;
+
+    // Vertex layout is empty since vertex data is fully hardcoded in the shader for this simple example.
+    D3D12_INPUT_LAYOUT_DESC input_layout_desc = {};
+    input_layout_desc.pInputElementDescs = nullptr; // no vertex attributes for now
+    input_layout_desc.NumElements        = 0;
+    std::cout << "Empty Input Layout defined (Vertex data fully hardcoded in Shader)." << std::endl;
+
+    D3D12_GRAPHICS_PIPELINE_STATE_DESC pso_desc = {};
+    pso_desc.pRootSignature                                   = g_root_signature.Get();
+    pso_desc.VS                                               = { g_vertex_shader_blob->GetBufferPointer(), g_vertex_shader_blob->GetBufferSize() };
+    pso_desc.PS                                               = { g_pixel_shader_blob->GetBufferPointer(), g_pixel_shader_blob->GetBufferSize() };
+    pso_desc.InputLayout                                      = input_layout_desc;
+    pso_desc.RasterizerState.FillMode                         = D3D12_FILL_MODE_SOLID;
+    pso_desc.RasterizerState.CullMode                         = D3D12_CULL_MODE_BACK;
+    pso_desc.BlendState.RenderTarget[0].RenderTargetWriteMask = D3D12_COLOR_WRITE_ENABLE_ALL;
+    pso_desc.DepthStencilState.DepthEnable                    = FALSE;
+    pso_desc.DepthStencilState.StencilEnable                  = FALSE;
+    pso_desc.PrimitiveTopologyType                            = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
+    pso_desc.NumRenderTargets                                 = 1;
+    pso_desc.RTVFormats[0]                                    = DXGI_FORMAT_R8G8B8A8_UNORM;
+    pso_desc.SampleDesc.Count                                 = 1;
+    pso_desc.SampleMask                                       = UINT_MAX;
+
+    hr = g_device->CreateGraphicsPipelineState(&pso_desc, IID_PPV_ARGS(&g_pipeline_state));
+    if (FAILED(hr)) {
+        std::cerr << "Failed to create Pipeline State Object: " << std::hex << hr << std::endl;
+        return;
+    }
+    std::cout << "Pipeline State Object created successfully." << std::endl;
+}
+
 int main()
 {
     glfwInit();
@@ -184,6 +296,7 @@ int main()
     };
 
     InitializeD3D12();
+    CreatePipelineState();
 
     while (!window.ShouldClose()) {
         glfwPollEvents();
