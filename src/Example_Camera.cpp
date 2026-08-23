@@ -443,8 +443,7 @@ int main(int argc, char* argv[]) {
         for (uint32_t i = 0; i < 10; ++i) {
             glm::mat4 model(1.0f);
             model = glm::translate(model, kCubePositions[i]);
-            model = glm::rotate(model, glm::radians(20.0f * i),
-                                 glm::vec3(1.0f, 0.3f, 0.5f));
+            model = glm::rotate(model, glm::radians(20.0f * i), glm::vec3(1.0f, 0.3f, 0.5f));
             renderer->SetUniformMat4(loc_model, glm::value_ptr(model));
             renderer->Draw(36, 0);
         }
